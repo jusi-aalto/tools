@@ -141,7 +141,7 @@
 
     <div id="prompt-section" style="margin-top: 2em; padding-top: 2em; border-top: 1px solid #eee; display: none;">
         <h2>Run a prompt with Claude</h2>
-        <textarea id="prompt-textarea">Respond in markdown. You summarize the pasted in text. Start with a overall summary in a single paragraph. Then show a bullet pointed list of the most interestin[...]
+        <textarea id="prompt-textarea">Respond in markdown. You summarize the pasted in text. Start with a overall summary in a single paragraph. Then show a bullet pointed list of the most interesting points.</textarea>
         <button id="run-prompt-btn">Run prompt</button>
         <div id="prompt-loading" style="margin: 1em 0; font-style: italic;">Generating...</div>
         <div id="prompt-result">
@@ -247,99 +247,7 @@
                 alert("There is no content to save.");
                 return;
             }
-            // Use text/plain for max compatibility, but text/markdown is fine for most
-        fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            fileUploadStatus.textContent = '';
-            loading.style.display = 'block';
-            result.style.display = 'none';
-
-            // Only accept PDF or HTML files
-            if (!(file.type === 'application/pdf' || file.type === 'text/html' || file.name.endsWith('.pdf') || file.name.endsWith('.html'))) {
-                fileUploadStatus.textContent = 'Invalid file type. Please upload a PDF or HTML file.';
-                loading.style.display = 'none';
-                return;
-            }
-
-            try {
-                // Read file as base64
-                const reader = new FileReader();
-                reader.onload = async function(evt) {
-                    const base64String = evt.target.result.split(',')[1];
-                    const ext = file.name.split('.').pop().toLowerCase();
-
-                    // Fix: Don't include url field when uploading a file
-                    const data = ext === 'pdf' ? { pdf: base64String } : { html: base64String };
-
-                    const response = await fetch('https://r.jina.ai/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(data)
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Upload error:', errorText);
-                        throw new Error('Error uploading file: ' + response.status);
-                    }
-
-                    let contentType = 'markdown';
-                    try {
-                        const ct = response.headers.get('Content-Type');
-                        if (ct && ct.includes('html')) {
-                            contentType = 'html';
-                        } else if (ct && ct.includes('text')) {
-                            contentType = 'text';
-                        }
-                    } catch {}
-
-                    const content = await response.text();
-                    markdownRaw.value = content;
-
-                    let htmlContent;
-                    if (contentType === 'html') {
-                        htmlContent = content;
-                    } else {
-                        htmlContent = `
-                            <html>
-                                <head>
-                                    <style>
-                                        body { font-family: Helvetica, sans-serif; line-height: 1.6; color: #333; }
-                                        img { max-width: 100%; height: auto; }
-                                    </style>
-                                </head>
-                                <body>
-                                    ${contentType === 'text' ? `<pre>${content}</pre>` : marked.parse(content)}
-                                </body>
-                            </html>
-                        `;
-                    }
-                    markdownRendered.srcdoc = htmlContent;
-                    result.style.display = 'block';
-                    document.getElementById('prompt-section').style.display = 'block';
-                    fileUploadStatus.textContent = 'File uploaded and processed!';
-                    loading.style.display = 'none';
-                };
-                reader.onerror = function() {
-                    fileUploadStatus.textContent = 'Failed to read file.';
-                    loading.style.display = 'none';
-                };
-
-                reader.readAsDataURL(file);
-            } catch (error) {
-                console.error('Error uploading file:', error);
-                markdownRaw.value = 'Error uploading file. Please try again.';
-                markdownRendered.srcdoc = '<p>Error uploading file. Please try again.</p>';
-                result.style.display = 'block';
-                document.getElementById('prompt-section').style.display = 'none';
-                fileUploadStatus.textContent = 'Error uploading file.';
-                loading.style.display = 'none';
-            }
-        });           
+            
             const blob = new Blob([content], { type: 'text/markdown' });
             const url = URL.createObjectURL(blob);
 
